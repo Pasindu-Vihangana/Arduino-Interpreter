@@ -12,6 +12,18 @@ def deviceBuild(logicType, nodes):
         case 'or':
             # print("OR")
             return OR(logicType, nodes)
+        case 'nand':
+            # print("NOT")
+            return NAND(logicType, nodes)
+        case 'nor':
+            # print("AND")
+            return NOR(logicType, nodes)
+        case 'xor':
+            # print("OR")
+            return XNOR(logicType, nodes)
+        case 'xnor':
+            # print("OR")
+            return XNOR(logicType, nodes)
 ###################################################
 ###################################################
 
@@ -60,13 +72,10 @@ class AND:
     def process(self):
         inputs = [val for key, val in self.node.items() if 'in' in key]
         input_keys = [key for key, val in self.node.items() if 'in' in key]
-        # print(input_keys)
-        # print(inputs)
         self.value = inputs[0]
         for index in range(1, len(inputs)):
             self.value = self.value and inputs[index]
         self.node['out'] = self.value
-        # self.node['out'] = bool(self.node['in0'] and self.node['in1'])
 
     def out(self):
         return self.value
@@ -83,13 +92,10 @@ class OR:
     def process(self):
         inputs = [val for key, val in self.node.items() if 'in' in key]
         input_keys = [key for key, val in self.node.items() if 'in' in key]
-        # print(input_keys)
-        # print(inputs)
         self.value = inputs[0]
         for index in range(1, len(inputs)):
             self.value = self.value or inputs[index]
         self.node['out'] = self.value
-        # self.node['out'] = bool(self.node['in0'] or self.node['in1'])
 
     def out(self):
         return self.value
@@ -104,7 +110,16 @@ class NAND:
             self.node[pins[pin]] = False
 
     def process(self):
-        print('processed')
+        inputs = [val for key, val in self.node.items() if 'in' in key]
+        input_keys = [key for key, val in self.node.items() if 'in' in key]
+        self.value = inputs[0]
+        for index in range(1, len(inputs)):
+            self.value = self.value and inputs[index]
+        self.value = not self.value
+        self.node['out'] = self.value
+
+    def out(self):
+        return self.value
 
 
 class NOR:
@@ -116,7 +131,16 @@ class NOR:
             self.node[pins[pin]] = False
 
     def process(self):
-        print('processed')
+        inputs = [val for key, val in self.node.items() if 'in' in key]
+        input_keys = [key for key, val in self.node.items() if 'in' in key]
+        self.value = inputs[0]
+        for index in range(1, len(inputs)):
+            self.value = self.value or inputs[index]
+        self.value = not self.value
+        self.node['out'] = self.value
+
+    def out(self):
+        return self.value
 
 
 class XOR:
@@ -128,7 +152,15 @@ class XOR:
             self.node[pins[pin]] = False
 
     def process(self):
-        print('processed')
+        inputs = [val for key, val in self.node.items() if 'in' in key]
+        input_keys = [key for key, val in self.node.items() if 'in' in key]
+        self.value = inputs[0]
+        for index in range(1, len(inputs)):
+            self.value ^= inputs[index]
+        self.node['out'] = self.value
+
+    def out(self):
+        return self.value
 
 
 class XNOR:
@@ -140,4 +172,13 @@ class XNOR:
             self.node[pins[pin]] = False
 
     def process(self):
-        print('processed')
+        inputs = [val for key, val in self.node.items() if 'in' in key]
+        input_keys = [key for key, val in self.node.items() if 'in' in key]
+        self.value = inputs[0]
+        for index in range(1, len(inputs)):
+            self.value ^= inputs[index]
+        self.value = not self.value
+        self.node['out'] = self.value
+
+    def out(self):
+        return self.value

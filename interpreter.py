@@ -7,6 +7,115 @@ from tkinter import filedialog
 from functools import partial
 
 
+########################################################################################################################
+########################################################################################################################
+def read_INPUT():
+    global circuitElements
+    for keys in pinConfig.keys():
+        if keys.split('_')[0] == 'input':
+            if circuitElements[keys].value:
+                INPUT_element[keys].config(image=on)
+            else:
+                INPUT_element[keys].config(image=off)
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+def update_INPUT(element_ID):
+    global circuitElements
+    read_INPUT()
+
+    print(circuitElements[element_ID].name + ' = ' + str(circuitElements[element_ID].value))
+    if circuitElements[element_ID].value:
+        circuitElements[element_ID].node['pin'] = False
+        circuitElements[element_ID].value = False
+    else:
+        circuitElements[element_ID].node['pin'] = True
+        circuitElements[element_ID].value = True
+
+    print(circuitElements[element_ID].name + ' = ' + str(circuitElements[element_ID].value))
+    read_INPUT()
+
+    clock()
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+def runElements():
+    global circuitElements
+    print("########################################################")
+    for e in logicElements.keys():
+        circuitElements[e].process()
+        print(circuitElements[e].name)
+        print(circuitElements[e].node)
+    print("########################################################")
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+def update_TERMINALS():
+    global circuitElements
+    # print("########################################################")
+    # for i in range(2):
+    for wires in range(len(wiring)):
+        receiver = wiring[wires][1].split('.')[0]
+        receiver_T = wiring[wires][1].split('.')[1]
+        sender = wiring[wires][0].split('.')[0]
+        sender_T = wiring[wires][0].split('.')[1]
+        # print(receiver + " @ " + receiver_T + " = " + sender + " @ " + sender_T)
+        # print(str(circuitElements[receiver].out()) + " = " + str(circuitElements[sender].out()))
+
+        # Critical # DO NOT CHANGE without AUTHORIZATION # Critical #
+        circuitElements[sender].process()
+        circuitElements[receiver].node[receiver_T] = circuitElements[sender].out()
+        circuitElements[receiver].value = circuitElements[sender].out()
+        # print(str(circuitElements[receiver].out()) + " = " + str(circuitElements[sender].out()))
+
+    # print("########################################################")
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+def update_OUTPUT():
+    # print("output(s) updated")
+    global circuitElements
+    for keys in pinConfig.keys():
+        if keys.split('_')[0] == 'output':
+            print(circuitElements[keys].node)
+            if circuitElements[keys].out():
+                OUTPUT_element[keys].config(image=on_bulb)
+            else:
+                OUTPUT_element[keys].config(image=off_bulb)
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+def clock():
+    global circuitElements
+    update_TERMINALS()
+    runElements()
+    update_TERMINALS()
+    runElements()
+    update_TERMINALS()
+    for e in circuitElements.keys():
+        print(circuitElements[e].name)
+        print(circuitElements[e].node)
+    update_OUTPUT()
+
+########################################################################################################################
+########################################################################################################################
+
+
 # GUI #
 ########################################################################################################################
 # Create Object
@@ -58,20 +167,8 @@ circuitElements = pinConfig | logicElements
 print(circuitElements)
 print(wiring)
 
-
-########################################################################################################################
-########################################################################################################################
-def runElements():
-    global circuitElements
-    print("########################################################")
-    for e in circuitElements.keys():
-        circuitElements[e].process()
-        print(circuitElements[e].name)
-        print(circuitElements[e].node)
-    print("########################################################")
-########################################################################################################################
-########################################################################################################################
-
+runElements()
+update_TERMINALS()
 
 ########################################################################################################################
 #   #  CREATE ELEMENTS  #   #
@@ -111,77 +208,5 @@ for index, element in enumerate(pinConfig.keys()):
             OUTPUT_label[element].grid(row=index, column=1)
 ########################################################################################################################
 ########################################################################################################################
-
-
-########################################################################################################################
-########################################################################################################################
-def update_INPUT(element_ID):
-    global circuitElements
-    if circuitElements[element_ID].value:
-        INPUT_element[element_ID].config(image=off)
-        circuitElements[element_ID].node['pin'] = False
-        circuitElements[element_ID].value = False
-    else:
-        INPUT_element[element_ID].config(image=on)
-        circuitElements[element_ID].node['pin'] = True
-        circuitElements[element_ID].value = True
-
-    clock()
-
-
-########################################################################################################################
-########################################################################################################################
-def clock():
-    global circuitElements
-    update_TERMINALS()
-    runElements()
-    update_TERMINALS()
-    runElements()
-    for e in circuitElements.keys():
-        print(circuitElements[e].name)
-        print(circuitElements[e].node)
-    update_OUTPUT()
-
-########################################################################################################################
-########################################################################################################################
-
-
-########################################################################################################################
-########################################################################################################################
-def update_TERMINALS():
-    global circuitElements
-    print("########################################################")
-    for i in range(2):
-        for wires in range(len(wiring)):
-            receiver = wiring[wires][1].split('.')[0]
-            receiver_T = wiring[wires][1].split('.')[1]
-            sender = wiring[wires][0].split('.')[0]
-            print(receiver + " @ " + receiver_T + " = " + sender)
-
-            # Critical # DO NOT CHANGE without AUTHORIZATION # Critical #
-            circuitElements[receiver].node.update({receiver_T: circuitElements[sender].out()})
-            circuitElements[receiver].value = circuitElements[sender].out()
-
-        print("########################################################")
-########################################################################################################################
-########################################################################################################################
-
-
-########################################################################################################################
-########################################################################################################################
-def update_OUTPUT():
-    # print("output(s) updated")
-    global circuitElements
-    for keys in pinConfig.keys():
-        if keys.split('_')[0] == 'output':
-            print(circuitElements[keys].node)
-            match circuitElements[keys].out():
-                case False:
-                    OUTPUT_element[keys].config(image=off_bulb)
-                case True:
-                    OUTPUT_element[keys].config(image=on_bulb)
-########################################################################################################################
-########################################################################################################################
-
 
 root2.mainloop()
