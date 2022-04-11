@@ -20,7 +20,7 @@ def deviceBuild(logicType, nodes):
             return NOR(logicType, nodes)
         case 'xor':
             # print("OR")
-            return XNOR(logicType, nodes)
+            return XOR(logicType, nodes)
         case 'xnor':
             # print("OR")
             return XNOR(logicType, nodes)

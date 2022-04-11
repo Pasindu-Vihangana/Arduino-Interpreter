@@ -167,9 +167,18 @@ circuitElements = pinConfig | logicElements
 print(circuitElements)
 print(wiring)
 
+'''
 runElements()
 update_TERMINALS()
-
+'''
+update_TERMINALS()
+runElements()
+update_TERMINALS()
+runElements()
+update_TERMINALS()
+for e in circuitElements.keys():
+    print(circuitElements[e].name)
+    print(circuitElements[e].node)
 ########################################################################################################################
 #   #  CREATE ELEMENTS  #   #
 ########################################################################################################################
