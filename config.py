@@ -47,7 +47,7 @@ def select_PORT():
     PORT = StringVar(configWindow)
     try:
         PORT.set(serial_ports()[0])
-    except:
+    except ValueError:
         PORT.set(serial_ports("N/A"))
 
     PORT_label = Label(configWindow, text="COM PORT" + " : ", font=("Helvetica", 12))
@@ -55,6 +55,25 @@ def select_PORT():
 
     port_drop = OptionMenu(configWindow, PORT, *serial_ports())
     port_drop.grid(row=0, column=3, sticky="E")
+###################################################
+###################################################
+
+
+###################################################
+###################################################
+def selectBoard():
+    global board
+    boardList = ["Nano", "Uno", "Mega"]
+    try:
+        board.set(boardList[0])
+    except ValueError:
+        board.set(serial_ports("N/A"))
+
+    Board_label = Label(configWindow, text="BOARD" + " : ", font=("Helvetica", 12))
+    Board_label.grid(row=1, column=2, sticky="E", ipadx=20)
+
+    Board_drop = OptionMenu(configWindow, board, *boardList)
+    Board_drop.grid(row=1, column=3, sticky="E")
 ###################################################
 ###################################################
 
@@ -71,10 +90,10 @@ def define_pins():
             pin_config[count].set(_pins[count])
 
             INPUT_label.append(Label(configWindow, text=data[0][device][1] + " : ", font=("Helvetica", 12)))
-            INPUT_label[count].grid(row=count+1, column=0, sticky="E", ipadx=20)
+            INPUT_label[count].grid(row=count+2, column=0, sticky="E", ipadx=20)
 
             drop.append(OptionMenu(configWindow, pin_config[count], *_pins))
-            drop[count].grid(row=count+1, column=1, sticky="E")
+            drop[count].grid(row=count+2, column=1, sticky="E")
 
             # pin_out[IO_file[line][0]] = nano.digital[pin_config[count].get()]
             # pin_out.get(IO_file[line][0]).mode = pyfirmata.INPUT
@@ -86,10 +105,10 @@ def define_pins():
             pin_config[count].set(_pins[count])
 
             INPUT_label.append(Label(configWindow, text=data[0][device][1] + " : ", font=("Helvetica", 12)))
-            INPUT_label[count].grid(row=count+1, column=0, sticky="E", ipadx=20)
+            INPUT_label[count].grid(row=count+2, column=0, sticky="E", ipadx=20)
 
             drop.append(OptionMenu(configWindow, pin_config[count], *_pins))
-            drop[count].grid(row=count+1, column=1, sticky="E")
+            drop[count].grid(row=count+2, column=1, sticky="E")
 
             # pin_out[IO_file[line][0]] = nano.digital[pin_config[count].get()]
             # pin_out.get(IO_file[line][0]).mode = pyfirmata.OUTPUT
@@ -97,9 +116,10 @@ def define_pins():
             count += 1
 
     select_PORT()
+    selectBoard()
 
     button_def = Button(configWindow, text="Run Config", command=hardware_config)
-    button_def.grid(row=count+1, column=3, sticky="E", ipadx=2, ipady=2, padx=10, pady=10)
+    button_def.grid(row=count+2, column=3, sticky="E", ipadx=2, ipady=2, padx=10, pady=10)
 ###################################################
 ###################################################
 
@@ -181,6 +201,7 @@ def hardware_config():
     #       # VARIABLES VISUALISATION #        #
     ############################################
     print(COM_PORT)
+    print(board.get())
 
     for elements in logicElements.keys():
         # print(logicElements[elements].name)
@@ -194,6 +215,10 @@ def hardware_config():
         print(wiring[i])
     ############################################
     ############################################
+    os.makedirs(os.path.dirname("bin/boardConfig.pkl"), exist_ok=True)
+    with open("bin/boardConfig.pkl", "wb") as portFile:
+        pickle.dump([COM_PORT, board.get()], portFile)
+        portFile.close()
 
     os.makedirs(os.path.dirname("bin/pins.pkl"), exist_ok=True)
     with open("bin/pins.pkl", "wb") as pinFile:
@@ -223,7 +248,8 @@ pin_config = []
 logicElements = {}
 wiring = []
 pins = {}
-PORT = ''
+PORT = StringVar(configWindow)
+board = StringVar(configWindow)
 
 # for Arduino Uno
 _pins = [

@@ -1,5 +1,10 @@
+import os
+import threading
+import time
 import pickle
-import re
+import tkinter
+
+from pyfirmata import Arduino, util, Pin
 
 from tkinter import *
 from tkinter import filedialog
@@ -9,7 +14,7 @@ from functools import partial
 
 ########################################################################################################################
 ########################################################################################################################
-def read_INPUT():
+def update_INPUT():
     global circuitElements
     for keys in pinConfig.keys():
         if keys.split('_')[0] == 'input':
@@ -23,22 +28,31 @@ def read_INPUT():
 
 ########################################################################################################################
 ########################################################################################################################
-def update_INPUT(element_ID):
+def set_INPUT(element_ID):
     global circuitElements
-    read_INPUT()
-
-    print(circuitElements[element_ID].name + ' = ' + str(circuitElements[element_ID].value))
-    if circuitElements[element_ID].value:
-        circuitElements[element_ID].node['pin'] = False
-        circuitElements[element_ID].value = False
+    # print(circuitElements[element_ID].name + ' = ' + str(circuitElements[element_ID].value))
+    print(HardwarePriority[element_ID].get())
+    if HardwarePriority[element_ID].get() == "HARDWARE":
+        # it.start()
+        try:
+            print(ArduinoElements[element_ID].read())
+            circuitElements[element_ID].node['pin'] = ArduinoElements[element_ID].read()
+            circuitElements[element_ID].value = ArduinoElements[element_ID].read()
+        finally:
+            # board.exit()
+            it.join(0.1)
     else:
-        circuitElements[element_ID].node['pin'] = True
-        circuitElements[element_ID].value = True
+        update_INPUT()
+        if circuitElements[element_ID].value:
+            circuitElements[element_ID].node['pin'] = False
+            circuitElements[element_ID].value = False
+        else:
+            circuitElements[element_ID].node['pin'] = True
+            circuitElements[element_ID].value = True
 
     print(circuitElements[element_ID].name + ' = ' + str(circuitElements[element_ID].value))
-    read_INPUT()
-
     clock()
+    update_INPUT()
 ########################################################################################################################
 ########################################################################################################################
 
@@ -47,12 +61,14 @@ def update_INPUT(element_ID):
 ########################################################################################################################
 def runElements():
     global circuitElements
-    print("########################################################")
+    # print("########################################################")
     for e in logicElements.keys():
         circuitElements[e].process()
+        '''
         print(circuitElements[e].name)
         print(circuitElements[e].node)
-    print("########################################################")
+        '''
+    # print("########################################################")
 ########################################################################################################################
 ########################################################################################################################
 
@@ -89,7 +105,8 @@ def update_OUTPUT():
     global circuitElements
     for keys in pinConfig.keys():
         if keys.split('_')[0] == 'output':
-            print(circuitElements[keys].node)
+            # print(circuitElements[keys].node)
+            ArduinoElements[keys].write(circuitElements[keys].out())
             if circuitElements[keys].out():
                 OUTPUT_element[keys].config(image=on_bulb)
             else:
@@ -102,27 +119,77 @@ def update_OUTPUT():
 ########################################################################################################################
 def clock():
     global circuitElements
+    update_INPUT()
     update_TERMINALS()
     runElements()
     update_TERMINALS()
     runElements()
     update_TERMINALS()
+    '''
     for e in circuitElements.keys():
         print(circuitElements[e].name)
         print(circuitElements[e].node)
+    '''
     update_OUTPUT()
-
 ########################################################################################################################
 ########################################################################################################################
 
 
-# GUI #
+########################################################################################################################
+########################################################################################################################
+def voidMain():
+    # print('void setup()')
+    # print('{')
+    for keys in pinConfig.keys():
+        match keys.split('_')[0]:
+            case 'input':
+                pinCall = 'd:' + str(pinConfig[keys].digitalAddress) + ':i'
+                ArduinoElements[keys] = board.get_pin(pinCall)
+                # print('pinMode(' + str(pinConfig[keys].digitalAddress) + ', INPUT);')
+                # print(pinCall)
+            case 'output':
+                pinCall = 'd:' + str(pinConfig[keys].digitalAddress) + ':o'
+                ArduinoElements[keys] = board.get_pin(pinCall)
+                # print(pinCall)
+                # print('pinMode(' + str(pinConfig[keys].digitalAddress) + ', OUTPUT);')
+    # print('}')
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+def changePriority(choice):
+    global HardwarePriority, circuitElements
+    print(choice)
+    for keys in pinConfig.keys():
+        if keys.split("_")[0] == "input":
+            match HardwarePriority[keys].get():
+                case 'HARDWARE':
+                    # it.start()
+                    try:
+                        print(ArduinoElements[keys].read())
+                        circuitElements[keys].node['pin'] = ArduinoElements[keys].read()
+                        circuitElements[keys].value = ArduinoElements[keys].read()
+                    finally:
+                        # board.exit()
+                        it.join(0.1)
+                case 'SOFTWARE':
+                    set_INPUT(keys)
+    update_INPUT()
+########################################################################################################################
+########################################################################################################################
+
+
+########################################################################################################################
+########################################################################################################################
+# Define GUI
 ########################################################################################################################
 # Create Object
 root2 = Tk()
 
 # Set Title
-root2.title('CIRCUIT EMULATOR')
+root2.title('CIRCUIT SIMULATOR')
 
 # Add Geometry
 root2.geometry("640x480")
@@ -132,19 +199,38 @@ root2.rowconfigure([0, 5], minsize=50, pad=20)
 
 ########################################################################################################################
 # Define Images
+########################################################################################################################
 on = PhotoImage(file="./images/ON.png")
 off = PhotoImage(file="./images/OFF.png")
 on_bulb = PhotoImage(file="./images/ON_light.png")
 off_bulb = PhotoImage(file="./images/OFF_light.png")
+hardware = PhotoImage(file="./images/Hardware.png")
+software = PhotoImage(file="./images/Software.png")
 ########################################################################################################################
 
+########################################################################################################################
+# Define Variable Dicts
+########################################################################################################################
 INPUT_element = {}
 INPUT_labels = {}
+INPUT_option = {}
+HardwarePriority = {}
 OUTPUT_element = {}
 OUTPUT_label = {}
+ArduinoElements = {}
+options = ['HARDWARE', 'SOFTWARE']
+########################################################################################################################
 
 ########################################################################################################################
+# load files from config.py
 ########################################################################################################################
+with open("bin/boardConfig.pkl", "rb") as pinFile:
+    temp = pickle.load(pinFile)
+    port = temp[0]
+    boardType = temp[1]
+    del temp
+    pinFile.close()
+
 with open("bin/pins.pkl", "rb") as pinFile:
     temp = pickle.load(pinFile)
     pinConfig = temp
@@ -162,48 +248,75 @@ with open("bin/logicElements.pkl", "rb") as elementsFile:
     logicElements = temp
     del temp
     elementsFile.close()
-
+########################################################################################################################
 circuitElements = pinConfig | logicElements
-print(circuitElements)
-print(wiring)
+########################################################################################################################
+########################################################################################################################
 
-'''
+########################################################################################################################
+# Define Arduino
+########################################################################################################################
+print("Connecting to the \"" + boardType + "\" @ " + port)
+board = Arduino(port)
+print('version: ' + str(board.get_firmata_version()))
+print("Connected")
+########################################################################################################################
+########################################################################################################################
+
+########################################################################################################################
+# Initial Setup
+########################################################################################################################
+update_TERMINALS()
+runElements()
+update_TERMINALS()
 runElements()
 update_TERMINALS()
 '''
-update_TERMINALS()
-runElements()
-update_TERMINALS()
-runElements()
-update_TERMINALS()
 for e in circuitElements.keys():
     print(circuitElements[e].name)
     print(circuitElements[e].node)
+'''
 ########################################################################################################################
-#   #  CREATE ELEMENTS  #   #
+########################################################################################################################
+
+
+########################################################################################################################
+#  Create HMI
 ########################################################################################################################
 for index, element in enumerate(pinConfig.keys()):
     match element.split('_')[0]:
         case 'input':
-            # print(element)
             match circuitElements[element].node['pin']:
                 case False:
                     INPUT_element[element] = Button(
                         root2,
                         image=off,
                         bd=0,
-                        command=lambda elementID=element: update_INPUT(elementID)
+                        command=lambda elementID=element: set_INPUT(elementID)
                     )
                 case True:
                     INPUT_element[element] = Button(
                         root2,
                         image=on,
                         bd=0,
-                        command=lambda elementID=element: update_INPUT(elementID)
+                        command=lambda elementID=element: set_INPUT(elementID)
                     )
             INPUT_element[element].grid(row=index, column=0, sticky="E")
             INPUT_labels[element] = Label(root2, text=element, font=("Helvetica", 16))
             INPUT_labels[element].grid(row=index, column=0, sticky="W", ipadx=20)
+
+            HardwarePriority[element] = StringVar(root2)
+            HardwarePriority[element].set("SOFTWARE")
+
+            print(element)
+            INPUT_option[element] = OptionMenu(
+                root2,
+                HardwarePriority[element],
+                *options,
+                command=changePriority
+            )
+            print(element)
+            INPUT_option[element].grid(row=index, column=1)
 
         case 'output':
             # print(element)
@@ -217,5 +330,9 @@ for index, element in enumerate(pinConfig.keys()):
             OUTPUT_label[element].grid(row=index, column=1)
 ########################################################################################################################
 ########################################################################################################################
-
+voidMain()
+########################################################################################################################
+########################################################################################################################
+it = util.Iterator(board)
+it.start()
 root2.mainloop()
